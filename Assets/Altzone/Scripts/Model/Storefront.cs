@@ -1,36 +1,96 @@
+using System;
 using System.Collections.Generic;
-using Altzone.Scripts.Model.LocalStorage;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Altzone.Scripts.Model.Dto;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace Altzone.Scripts.Model
 {
     /// <summary>
-    /// Store for model and custom objects.
+    /// Store CRUD operations for model and custom objects.
     /// </summary>
+    /// <remarks>
+    /// https://github.com/Alt-Org/Altzone/wiki/Pelin-Tietovarastot
+    /// </remarks>
     public interface IStorefront
     {
-        CharacterClassModel GetCharacterClassModel(int id);
-        List<CharacterClassModel> GetAllCharacterClassModels();
+        bool IsInventoryConnected { get; }
+
+        #region ICharacterClassModel
+
+        ICharacterClassModel GetCharacterClassModel(int id);
+        List<ICharacterClassModel> GetAllCharacterClassModels();
+
+        #endregion
+
+        #region ICustomCharacterModel
 
         ICustomCharacterModel GetCustomCharacterModel(int id);
         List<ICustomCharacterModel> GetAllCustomCharacterModels();
-        void Save(ICustomCharacterModel customCharacterModel);
-        void Delete(int id);
+        int Save(ICustomCharacterModel customCharacterModel);
+        void DeleteCustomCharacterModel(int id);
+
+        #endregion
+
+        #region IBattleCharacter
 
         IBattleCharacter GetBattleCharacter(int id);
         List<IBattleCharacter> GetAllBattleCharacters();
 
-        ClanModel GetClanModel(int id);
-        List<ClanModel> GetAllClanModels();
+        #endregion
 
-        FurnitureModel GetFurnitureModel(int id);
-        FurnitureModel GetFurnitureModel(string name);
-        List<FurnitureModel> GetAllFurnitureModels();
+        #region IClanModel
 
-        RaidGameRoomModel GetRaidGameRoomModel(int id);
-        RaidGameRoomModel GetRaidGameRoomModel(string name);
-        List<RaidGameRoomModel> GetAllRaidGameRoomModels();
+        IClanModel GetClanModel(int id);
+        List<IClanModel> GetAllClanModels();
+        int Save(IClanModel clanModel);
+        void DeleteClanModel(int id);
+
+        #endregion
+
+        #region IFurnitureModel
+
+        IFurnitureModel GetFurnitureModel(int id);
+        IFurnitureModel GetFurnitureModel(string name);
+        List<IFurnitureModel> GetAllFurnitureModels();
+
+        #endregion
+
+        #region PlayerData (Async)
+
+        Task<IPlayerDataModel> GetPlayerDataModel(int id);
+        Task<List<IPlayerDataModel>> GetAllPlayerDataModels();
+
+        Task<int> Save(IPlayerDataModel inventoryItem);
+        Task DeletePlayerDataModel(int id);
+
+        #endregion
+
+        #region RaidGameRoomModel (Async)
+
+        Task<IRaidGameRoomModel> GetRaidGameRoomModel(int id);
+        Task<IRaidGameRoomModel> GetRaidGameRoomModel(string name);
+        Task<List<IRaidGameRoomModel>> GetAllRaidGameRoomModels();
+
+        Task<int> Save(RaidGameRoomModel raidGameRoomModel);
+        Task DeleteRaidGameRoomModel(int id);
+
+        #endregion
+
+        #region Inventory (Async)
+
+        Task<IInventoryItem> GetInventoryItem(int id);
+        Task<List<IInventoryItem>> GetAllInventoryItems();
+
+        Task<List<IFurnitureModel>> GetAllFurnitureModelsFromInventory();
+
+        Task<int> Save(IInventoryItem inventoryItem);
+        Task DeleteInventoryItem(int id);
+
+        #endregion
     }
 
     public class Storefront : IStorefront
@@ -47,16 +107,42 @@ namespace Altzone.Scripts.Model
             return _instance ??= new Storefront();
         }
 
+        private const string RaidGameRoomModelsFilename = "RaidGameRoomModels.json";
+        private const string InventoryItemsFilename = "InventoryItems.json";
+
         private static Storefront _instance;
+
+        private IInventory _inventory;
+
+        public bool IsInventoryConnected => _inventory != null;
 
         private Storefront()
         {
+            Debug.Log($"start initialization");
             Models.Load();
             CustomCharacterModels.Load();
-            RaidGameRoomModels.Load();
+            var raidGameRoomModelsPath = Path.Combine(Application.persistentDataPath, RaidGameRoomModelsFilename);
+            var inventoryItemsPath = Path.Combine(Application.persistentDataPath, InventoryItemsFilename);
+            Task.Run(() =>
+            {
+                try
+                {
+                    var connectResult = RaidGameRoomModels.Connect(raidGameRoomModelsPath);
+                    var inventoryResult = InventoryFactory.Create(inventoryItemsPath);
+                    Task.WaitAll(connectResult, inventoryResult);
+                    Assert.IsTrue(connectResult.Result);
+                    _inventory = inventoryResult.Result;
+                    Assert.IsNotNull(_inventory);
+                }
+                catch (Exception x)
+                {
+                    Debug.LogWarning($"error: {x.GetType().FullName} {x.Message}");
+                }
+                Debug.Log($"done initialization");
+            });
         }
 
-        CharacterClassModel IStorefront.GetCharacterClassModel(int id)
+        ICharacterClassModel IStorefront.GetCharacterClassModel(int id)
         {
             var model = Models.FindById<CharacterClassModel>(id);
             if (model == null)
@@ -66,34 +152,64 @@ namespace Altzone.Scripts.Model
             return model;
         }
 
-        List<CharacterClassModel> IStorefront.GetAllCharacterClassModels()
+        List<ICharacterClassModel> IStorefront.GetAllCharacterClassModels()
         {
-            return Models.GetAll<CharacterClassModel>();
+            return Models.GetAll<CharacterClassModel>().Cast<ICharacterClassModel>().ToList();
         }
 
-        ClanModel IStorefront.GetClanModel(int id)
+        IClanModel IStorefront.GetClanModel(int id)
         {
             return Models.FindById<ClanModel>(id);
         }
 
-        List<ClanModel> IStorefront.GetAllClanModels()
+        List<IClanModel> IStorefront.GetAllClanModels()
         {
-            return Models.GetAll<ClanModel>();
+            return Models.GetAll<ClanModel>().Cast<IClanModel>().ToList();
         }
 
-        FurnitureModel IStorefront.GetFurnitureModel(int id)
+        public int Save(IClanModel clanModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DeleteClanModel(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        IFurnitureModel IStorefront.GetFurnitureModel(int id)
         {
             return Models.FindById<FurnitureModel>(id);
         }
 
-        FurnitureModel IStorefront.GetFurnitureModel(string name)
+        IFurnitureModel IStorefront.GetFurnitureModel(string name)
         {
             return Models.Find<FurnitureModel>(x => x.Name == name);
         }
 
-        List<FurnitureModel> IStorefront.GetAllFurnitureModels()
+        List<IFurnitureModel> IStorefront.GetAllFurnitureModels()
         {
-            return Models.GetAll<FurnitureModel>();
+            return Models.GetAll<FurnitureModel>().Cast<IFurnitureModel>().ToList();
+        }
+
+        public Task<IPlayerDataModel> GetPlayerDataModel(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<IPlayerDataModel>> GetAllPlayerDataModels()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> Save(IPlayerDataModel playerDataModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeletePlayerDataModel(int id)
+        {
+            throw new NotImplementedException();
         }
 
         public ICustomCharacterModel GetCustomCharacterModel(int id)
@@ -106,56 +222,74 @@ namespace Altzone.Scripts.Model
             return CustomCharacterModels.LoadModels();
         }
 
-        public void Save(ICustomCharacterModel customCharacterModel)
+        public int Save(ICustomCharacterModel customCharacterModel)
         {
-            CustomCharacterModels.Save(customCharacterModel);
+            return CustomCharacterModels.Save(customCharacterModel);
         }
 
-        public void Delete(int id)
+        public void DeleteCustomCharacterModel(int id)
         {
             CustomCharacterModels.Delete(id);
         }
 
         public IBattleCharacter GetBattleCharacter(int customCharacterId)
         {
-            var customCharacter = Get().GetCustomCharacterModel(customCharacterId);
-            if (customCharacter == null)
-            {
-                throw new UnityException($"CustomCharacterModel not found for {customCharacterId}");
-            }
-            var character = Get().GetCharacterClassModel(customCharacter.CharacterModelId);
-            if (character == null)
-            {
-                throw new UnityException($"CustomCharacter {customCharacterId} CharacterModel not found for {customCharacter.CharacterModelId}");
-            }
-            return new BattleCharacter(customCharacter, character);
+            return BattleCharacter.GetBattleCharacter(this, customCharacterId);
         }
 
         public List<IBattleCharacter> GetAllBattleCharacters()
         {
-            // Same as Custom Characters.
-            var battleCharacters = new List<IBattleCharacter>();
-            var customCharacters = Get().GetAllCustomCharacterModels();
-            foreach (var customCharacter in customCharacters)
-            {
-                battleCharacters.Add(Get().GetBattleCharacter(customCharacter.Id));
-            }
-            return battleCharacters;
+            return BattleCharacter.GetAllBattleCharacters(this);
         }
 
-        public RaidGameRoomModel GetRaidGameRoomModel(int id)
+        public Task<IRaidGameRoomModel> GetRaidGameRoomModel(int id)
         {
-            return RaidGameRoomModels.GetRaidGameRoomModel(id);
+            return RaidGameRoomModels.GetById(id);
         }
 
-        public RaidGameRoomModel GetRaidGameRoomModel(string name)
+        public Task<IRaidGameRoomModel> GetRaidGameRoomModel(string name)
         {
-            return RaidGameRoomModels.GetRaidGameRoomModel(name);
+            return RaidGameRoomModels.GetByName(name);
         }
 
-        public List<RaidGameRoomModel> GetAllRaidGameRoomModels()
+        public Task<List<IRaidGameRoomModel>> GetAllRaidGameRoomModels()
         {
-            return RaidGameRoomModels.LoadModels();
+            return RaidGameRoomModels.GetAll();
+        }
+
+        public Task<int> Save(RaidGameRoomModel raidGameRoomModel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteRaidGameRoomModel(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IInventoryItem> GetInventoryItem(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<IInventoryItem>> GetAllInventoryItems()
+        {
+            return _inventory.GetAll();
+        }
+
+        public Task<List<IFurnitureModel>> GetAllFurnitureModelsFromInventory()
+        {
+            return _inventory.GetAllFurnitureModelsFromInventory();
+        }
+
+        public Task<int> Save(IInventoryItem inventoryItem)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteInventoryItem(int id)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -175,7 +309,7 @@ namespace Altzone.Scripts.Model
             public int Attack { get; }
             public int Defence { get; }
 
-            public BattleCharacter(ICustomCharacterModel custom, CharacterClassModel classModel)
+            private BattleCharacter(ICustomCharacterModel custom, ICharacterClassModel classModel)
             {
                 Assert.IsTrue(custom.CharacterModelId == classModel.Id, "custom.CharacterId == model.Id");
                 Name = custom.Name;
@@ -186,6 +320,33 @@ namespace Altzone.Scripts.Model
                 Resistance = classModel.Resistance + custom.Resistance;
                 Attack = classModel.Attack + custom.Attack;
                 Defence = classModel.Defence + custom.Defence;
+            }
+
+            public static IBattleCharacter GetBattleCharacter(IStorefront store, int customCharacterId)
+            {
+                var customCharacter = store.GetCustomCharacterModel(customCharacterId);
+                if (customCharacter == null)
+                {
+                    throw new UnityException($"CustomCharacterModel not found for {customCharacterId}");
+                }
+                var character = store.GetCharacterClassModel(customCharacter.CharacterModelId);
+                if (character == null)
+                {
+                    throw new UnityException($"CustomCharacter {customCharacterId} CharacterModel not found for {customCharacter.CharacterModelId}");
+                }
+                return new BattleCharacter(customCharacter, character);
+            }
+
+            public static List<IBattleCharacter> GetAllBattleCharacters(IStorefront store)
+            {
+                // Same as Custom Characters.
+                var battleCharacters = new List<IBattleCharacter>();
+                var customCharacters = store.GetAllCustomCharacterModels();
+                foreach (var customCharacter in customCharacters)
+                {
+                    battleCharacters.Add(Get().GetBattleCharacter(customCharacter.Id));
+                }
+                return battleCharacters;
             }
         }
     }

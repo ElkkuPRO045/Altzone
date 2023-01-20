@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Altzone.Scripts;
 using Altzone.Scripts.Config;
 using Altzone.Scripts.Model;
+using Altzone.Scripts.Model.Dto;
 using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Realtime;
@@ -191,7 +193,7 @@ namespace Battle0.Scripts
             {
                 return PhotonNetwork.NickName;
             }
-            var playerData = GameConfig.Get().PlayerDataCache;
+            var playerData = GameConfig.Get().PlayerSettings;
             return !string.IsNullOrWhiteSpace(playerData.PlayerName) ? playerData.PlayerName : NoPlayerName;
         }
 
@@ -357,7 +359,7 @@ namespace Battle0.Scripts
             var skillId = player.GetCustomProperty(PlayerMainSkillKey, -1);
             if (!Enum.TryParse(skillId.ToString(), out Defence defence))
             {
-                var playerDataCache = GameConfig.Get().PlayerDataCache;
+                var playerDataCache = GameConfig.Get().PlayerSettings;
                 defence = Storefront.Get().GetBattleCharacter(playerDataCache.CustomCharacterModelId).MainDefence;
             }
             return Storefront.Get().GetBattleCharacter((int)defence);

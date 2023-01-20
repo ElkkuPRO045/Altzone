@@ -19,8 +19,8 @@ namespace Assets.Tests.EditMode.ConfigTests
         public void NonDestructiveTest1()
         {
             Debug.Log($"test");
-            var playerDataCache = GameConfig.Get().PlayerDataCache;
-            
+            var playerDataCache = GameConfig.Get().PlayerSettings;
+
             Assert.IsTrue(playerDataCache.HasPlayerName);
 
             // Execute every getter.
@@ -38,7 +38,9 @@ namespace Assets.Tests.EditMode.ConfigTests
         [Test]
         public void DestructiveTest()
         {
-            var playerDataCache = GameConfig.Get().PlayerDataCache;
+            const int dummyModelId = -1;
+            
+            var playerDataCache = GameConfig.Get().PlayerSettings;
             if (!playerDataCache.IsFirstTimePlaying && playerDataCache.IsAccountVerified)
             {
                 Debug.Log($"test SKIPPED");
@@ -53,8 +55,8 @@ namespace Assets.Tests.EditMode.ConfigTests
             }
             else
             {
-                playerDataCache.SetCustomCharacterModelId(-1);
-                Assert.AreEqual(int.MaxValue, playerDataCache.CustomCharacterModelId);
+                playerDataCache.SetCustomCharacterModelId(-123);
+                Assert.AreEqual(dummyModelId, playerDataCache.CustomCharacterModelId);
             }
             var language = playerDataCache.Language;
             if (language == SystemLanguage.English)
@@ -70,7 +72,7 @@ namespace Assets.Tests.EditMode.ConfigTests
             var isDebugFlag = !playerDataCache.IsDebugFlag;
             playerDataCache.IsDebugFlag = isDebugFlag;
             Assert.AreEqual(isDebugFlag, playerDataCache.IsDebugFlag);
-            
+
             var isTosAccepted = !playerDataCache.IsTosAccepted;
             playerDataCache.IsTosAccepted = isTosAccepted;
             Assert.AreEqual(isTosAccepted, playerDataCache.IsTosAccepted);
@@ -78,7 +80,7 @@ namespace Assets.Tests.EditMode.ConfigTests
             var isFirstTimePlaying = !playerDataCache.IsFirstTimePlaying;
             playerDataCache.IsFirstTimePlaying = isFirstTimePlaying;
             Assert.AreEqual(isFirstTimePlaying, playerDataCache.IsFirstTimePlaying);
-            
+
             var isAccountVerified = !playerDataCache.IsAccountVerified;
             playerDataCache.IsAccountVerified = isAccountVerified;
             Assert.AreEqual(isAccountVerified, playerDataCache.IsAccountVerified);
@@ -89,7 +91,7 @@ namespace Assets.Tests.EditMode.ConfigTests
             playerDataCache.SetPlayerName(name);
             Assert.AreEqual(name, playerDataCache.PlayerName);
             playerDataCache.SetPlayerName(playerName);
-            
+
             playerDataCache.SetClanId(1);
             Assert.AreEqual(1, playerDataCache.ClanId);
 
@@ -103,7 +105,7 @@ namespace Assets.Tests.EditMode.ConfigTests
             playerDataCache.SetPlayerGuid(tempGuid);
             Assert.AreEqual(tempGuid, playerDataCache.PlayerGuid);
             playerDataCache.SetPlayerGuid(playerGuid);
-            
+
             Debug.Log($"done {playerDataCache}");
         }
     }

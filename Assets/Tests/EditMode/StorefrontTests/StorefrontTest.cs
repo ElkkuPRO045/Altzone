@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Altzone.Scripts;
 using Altzone.Scripts.Config;
 using Altzone.Scripts.Model;
+using Altzone.Scripts.Model.Dto;
 using NUnit.Framework;
 using UnityEngine;
-using Assert = UnityEngine.Assertions.Assert;
 
 namespace Assets.Tests.EditMode.StorefrontTests
 {
@@ -47,17 +48,6 @@ namespace Assets.Tests.EditMode.StorefrontTests
             Assert.IsTrue(models.Count > 0);
         }
 
-        [Test, Description("Test that there is RaidGameRoomModels and we can fetch one by id")]
-        public void RaidGameRoomModelTest()
-        {
-            Debug.Log("test");
-            var models = _store.GetAllRaidGameRoomModels();
-            var randomModel = GetRandomObject(models);
-            var model = _store.GetCharacterClassModel(randomModel._id);
-            Assert.IsNotNull(model);
-            Assert.AreEqual(randomModel._id, model.Id);
-        }
-
         [Test, Description("Test that there is Character Models and we can fetch one by id")]
         public void CharacterModelTest()
         {
@@ -87,6 +77,7 @@ namespace Assets.Tests.EditMode.StorefrontTests
         {
             Debug.Log("test");
             var customCharacterModels = _store.GetAllCustomCharacterModels();
+            Assert.IsTrue(customCharacterModels.Count > 0);
             var customCharacterModel = GetRandomObject(customCharacterModels);
             Assert.IsNotNull(customCharacterModel);
             var model = _store.GetCustomCharacterModel(customCharacterModel.Id);
@@ -131,7 +122,7 @@ namespace Assets.Tests.EditMode.StorefrontTests
         [Test, Description("Test that Battle Character can be found from PlayerDataCache")]
         public void PlayerDataCacheTest()
         {
-            var playerDataCache = GameConfig.Get().PlayerDataCache;
+            var playerDataCache = GameConfig.Get().PlayerSettings;
             var characterModelId = playerDataCache.CustomCharacterModelId;
             var battleCharacter = _store.GetBattleCharacter(characterModelId);
             Assert.IsNotNull(battleCharacter);
