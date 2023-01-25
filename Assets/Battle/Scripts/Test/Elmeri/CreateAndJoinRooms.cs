@@ -17,6 +17,7 @@ public class CreateAndJoinRooms : MonoBehaviourPunCallbacks
 
     public void JoinRoom()
     {
+        Debug.Log("kojok");
         PhotonNetwork.JoinRoom(JoinInput.text);
     }
 
